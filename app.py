@@ -33,7 +33,10 @@ st.title("Simple Data Explorer")
 # Load data
 st.sidebar.header("Data Upload")
 data_file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
+
 if data_file is not None:
+    df = pd.read_csv(data_file)
+    st.sidebar.success("Sample Data loaded successfully!")
     st.header("Manual EDA: Data Overview")
 
     # Show shape and datatypes
