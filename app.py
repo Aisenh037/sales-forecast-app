@@ -141,7 +141,11 @@ with tab_ml:
         # numeric part
         X_num = df[num_feats].astype("float32").to_numpy() if num_feats else np.empty((len(df),0))
         # categorical part
-        ohe = OneHotEncoder(sparse=True, handle_unknown="ignore", max_categories=30)
+        ohe = OneHotEncoder(
+            sparse_output=True,
+            handle_unknown="ignore",
+            max_categories=30
+        )
         X_cat = ohe.fit_transform(df[cat_feats].astype(str)) if cat_feats else sparse.csr_matrix((len(df),0))
         X = sparse.hstack([X_num, X_cat], format="csr")
         y = df[target]
