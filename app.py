@@ -34,6 +34,32 @@ else:
     st.info("Upload a CSV to get started.")
     st.stop()
 
+
+# --- Data Overview ---
+st.title("Simple Data Explorer")
+
+data_file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
+if data_file is not None:
+    df = pd.read_csv(data_file)
+    st.subheader("Data Preview")
+    st.dataframe(df.head())
+
+    st.write("**Shape:**", df.shape)
+    st.write("**Columns:**", df.columns.tolist())
+    st.write("**Missing Values:**")
+    st.write(df.isnull().sum())
+
+    st.write("**Summary Statistics:**")
+    st.write(df.describe())
+
+    st.write("**Numeric Columns Histogram**")
+    num_cols = df.select_dtypes(include='number').columns
+    if len(num_cols) > 0:
+        col = st.selectbox("Select column", num_cols)
+        st.plotly_chart(px.histogram(df, x=col, title=f"Histogram of {col}"))
+else:
+    st.info("Upload a CSV to begin.")
+
 # --- Auto EDA with Sweetviz ---
 if st.sidebar.button("Run Auto EDA (Sweetviz)"):
     report = sv.analyze(df)
@@ -43,6 +69,7 @@ if st.sidebar.button("Run Auto EDA (Sweetviz)"):
             html_content = f.read()
         st.components.v1.html(html_content, height=800, scrolling=True)
         os.remove(tmp.name)
+
 
 # --- Data Cleaning ---
 st.sidebar.header("Data Cleaning")
