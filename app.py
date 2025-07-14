@@ -51,24 +51,24 @@ def train_cs_model(model, X_train, y_train):
 
 # ── APP CONFIG ─────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Advanced Forecast & BI App", layout="wide")
-st.title("🚀 Advanced Forecasting & BI Dashboard App")
+st.title("Advanced Forecasting & BI Dashboard App")
 
 # ── DATA UPLOAD & CLEANING ─────────────────────────────────────────────────────
 st.sidebar.header("1. Upload & Clean Data")
 data_file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
 if not data_file:
-    st.info("📥 Upload a CSV on the left to begin.")
+    st.info("Upload a CSV on the left to begin.")
     st.stop()
 
 df = load_data(data_file)
-st.sidebar.success("✅ Data loaded!")
+st.sidebar.success("Data loaded!")
 
 if st.sidebar.checkbox("Drop rows with missing values?", value=True):
     df = df.dropna()
 
 # ── TABS LAYOUT ────────────────────────────────────────────────────────────────
 tab_eda, tab_ml, tab_ts, tab_dash = st.tabs(
-    ["📊 Manual & Auto EDA", "🤖 Cross-Sectional ML", "⏳ Time-Series Forecasting", "📈 Dashboards"]
+    ["Manual & Auto EDA", "Cross-Sectional ML", "Time-Series Forecasting", "Dashboards"]
 )
 
 # ── TAB 1: MANUAL & AUTO EDA ──────────────────────────────────────────────────
@@ -109,7 +109,7 @@ with tab_eda:
 
     # ── Auto EDA (Sweetviz → fallback to ProfileReport) ─────────────────────────
     st.header("2. Auto EDA")
-    if st.button("▶️ Run Auto EDA (Sweetviz)"):
+    if st.button("Run Auto EDA (Sweetviz)"):
         try:
             tmp_html = run_sweetviz(df)
         except Exception:
@@ -150,7 +150,7 @@ with tab_ml:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         model_choice = st.radio("Choose model", ["RandomForest","LinearRegression","XGBoost"])
-        if st.button("▶️ Train Cross-Sectional Model"):
+        if st.button("Train Cross-Sectional Model"):
             # instantiate
             if model_choice == "RandomForest":
                 m = RandomForestRegressor(n_estimators=100, random_state=42)
