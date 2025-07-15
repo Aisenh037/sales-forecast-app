@@ -194,11 +194,29 @@ with tab_ts:
     else:
         date_col = st.selectbox("Select date column", ts_cols)
         periods = st.number_input("Periods to forecast", min_value=1, max_value=24, value=6)
+        
+        # after — robust, mixed-format parsing
+
         df_ts = df.copy()
-        # robust parse
-        df_ts[date_col] = pd.to_datetime(df_ts[date_col], dayfirst=True, errors="coerce")
-        df_ts = df_ts.dropna(subset=[date_col, target]).set_index(date_col)
-        ts = df_ts[target].sort_index()
+
+        # try day-first, infer formats, coerce invalid strings into NaT
+        df_ts[date_col] = pd.to_datetime(
+            df_ts[date_col],
+            dayfirst=True,
+            infer_datetime_format=True,
+            errors="coerce"
+        )
+
+        # drop rows where date or target is missing, then sort and index
+        df_ts = (
+            df_ts
+            .dropna(subset=[date_col, target])
+            .sort_values(date_col)
+            .set_index(date_col)
+        )
+
+        ts = df_ts[target]
+
 
         # ARIMA
         if st.checkbox("Enable ARIMA"):
