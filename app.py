@@ -151,7 +151,7 @@ with tab_ml:
 
         X_num = df[num_feats].to_numpy() if num_feats else np.empty((len(df),0))
         if cat_feats:
-            ohe = OneHotEncoder(sparse=True, handle_unknown="ignore")
+            ohe = OneHotEncoder(sparse_output=True, handle_unknown="ignore")
             X_cat = ohe.fit_transform(df[cat_feats].astype(str))
         else:
             X_cat = sparse.csr_matrix((len(df),0))
