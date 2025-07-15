@@ -52,9 +52,9 @@ def run_sweetviz(df):
     return html
 
 @st.cache_resource
-def train_cs_model(model, X_train, y_train):
-    model.fit(X_train, y_train)
-    return model
+def train_cs_model(_model, X_train, y_train):
+    _model.fit(X_train, y_train)
+    return _model
 
 # ── APP CONFIG ─────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Advanced Forecast & BI App", layout="wide")
