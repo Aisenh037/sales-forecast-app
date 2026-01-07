@@ -1,4 +1,4 @@
-# Enterprise SaaS Analytics Platform
+# AstralytiQ - No Code Analytics Platform
 
 A modular, enterprise-grade SaaS analytics platform built with microservices architecture, demonstrating industry-standard software engineering practices.
 
@@ -254,3 +254,4 @@ This project demonstrates:
 - **Scalability**: Caching, connection pooling, horizontal scaling
 
 Perfect for demonstrating enterprise software development skills in job interviews and real-world projects!
+
