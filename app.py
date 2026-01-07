@@ -63,7 +63,7 @@ def main():
     """Main application function."""
     
     # Header
-    st.markdown('<h1 class="main-header">🚀 Enterprise SaaS Analytics Platform</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🚀 AstralytiQ - No Code Analytics Platform</h1>', unsafe_allow_html=True)
     
     # Sidebar navigation
     st.sidebar.title("Navigation")
@@ -90,7 +90,7 @@ def main():
 
 def show_dashboard():
     """Show main dashboard."""
-    st.header("📊 AstralytiQ - No Code Analytics Platform")
+    st.header("📊 Platform Overview")
     
     # Metrics row
     col1, col2, col3, col4 = st.columns(4)
@@ -808,6 +808,4 @@ def upload_dataset(file, name, description):
     return True
 
 if __name__ == "__main__":
-
     main()
-
