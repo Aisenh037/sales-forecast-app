@@ -3,7 +3,7 @@
 # FastAPI and ASGI
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-python-multipart==0.0.6
+python-multipart==0.0.18
 
 # Database
 sqlalchemy[asyncio]==2.0.23
@@ -20,7 +20,7 @@ redis[hiredis]==5.0.1
 # Authentication & Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-python-multipart==0.0.6
+python-multipart==0.0.18
 cryptography==44.0.1
 
 # Data validation
