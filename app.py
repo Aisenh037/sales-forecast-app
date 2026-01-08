@@ -35,8 +35,8 @@ import uuid
 
 # Configuration
 st.set_page_config(
-    page_title="🚀 AstralytiQ - Educational MLOps Platform",
-    page_icon="🚀",
+    page_title="AstralytiQ - Educational MLOps Platform",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -355,7 +355,7 @@ def show_user_profile():
 
 def show_header():
     """Display the main header with branding."""
-    st.markdown('<h1 class="main-header">🚀 AstralytiQ</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">AstralytiQ</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666; margin-bottom: 2rem;">Educational MLOps Platform - Learn, Build, and Deploy ML</p>', unsafe_allow_html=True)
 
 def show_user_level_selector():
@@ -384,25 +384,25 @@ def show_user_level_selector():
 def get_navigation_options(user_level):
     """Get navigation options based on user level."""
     base_options = [
-        "🏠 Dashboard",
-        "📊 Data Management",
-        "🤖 ML Studio",
-        "📈 Analytics"
+        "Dashboard",
+        "Data Management",
+        "ML Studio",
+        "Analytics"
     ]
     
     if user_level == 'Intermediate':
         base_options.extend([
-            "🔄 Data Pipelines",
-            "📋 Model Registry"
+            "Data Pipelines",
+            "Model Registry"
         ])
     elif user_level == 'Advanced':
         base_options.extend([
-            "🔄 Data Pipelines",
-            "📋 Model Registry",
-            "🌐 API Management",
-            "⚙️ System Monitoring",
-            "� UsDer Management",
-            "🔧 Platform Settings"
+            "Data Pipelines",
+            "Model Registry",
+            "API Management",
+            "System Monitoring",
+            "User Management",
+            "Platform Settings"
         ])
     
     return base_options

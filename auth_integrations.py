@@ -264,15 +264,15 @@ class OAuthProviders:
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("🔍 Google", use_container_width=True):
+            if st.button("Google", use_container_width=True):
                 st.info("Google OAuth integration ready!")
         
         with col2:
-            if st.button("🐙 GitHub", use_container_width=True):
+            if st.button("GitHub", use_container_width=True):
                 st.info("GitHub OAuth integration ready!")
         
         with col3:
-            if st.button("🏢 Microsoft", use_container_width=True):
+            if st.button("Microsoft", use_container_width=True):
                 st.info("Microsoft OAuth integration ready!")
 
 # =============================================================================
