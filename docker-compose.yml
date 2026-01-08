@@ -1,258 +1,168 @@
 version: '3.8'
 
 services:
+  # Streamlit Application
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+      args:
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        VCS_REF: ${VCS_REF:-$(git rev-parse --short HEAD)}
+        VERSION: ${VERSION:-latest}
+    container_name: astralytiq-streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - DEMO_MODE=true
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/astralytiq
+      - REDIS_URL=redis://redis:6379
+      - MONGODB_URL=mongodb://mongo:27017/astralytiq
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./.streamlit:/app/.streamlit
+    depends_on:
+      - postgres
+      - redis
+      - mongo
+    networks:
+      - astralytiq-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
+    container_name: astralytiq-postgres
     environment:
+      POSTGRES_DB: astralytiq
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: enterprise_saas
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - astralytiq-network
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - enterprise-network
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # MongoDB
-  mongodb:
-    image: mongo:7-jammy
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: enterprise_saas
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - enterprise-network
-
-  # Redis
+  # Redis Cache
   redis:
     image: redis:7-alpine
+    container_name: astralytiq-redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - astralytiq-network
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - enterprise-network
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # API Gateway
-  api-gateway:
-    build:
-      context: .
-      dockerfile: Dockerfile.gateway
-    ports:
-      - "8000:8000"
+  # MongoDB
+  mongo:
+    image: mongo:6
+    container_name: astralytiq-mongo
     environment:
-      - POSTGRES_HOST=postgres
-      - MONGODB_HOST=mongodb
-      - REDIS_HOST=redis
-      - USER_SERVICE_URL=http://user-service:8001
-      - TENANT_SERVICE_URL=http://tenant-service:8002
-      - DATA_SERVICE_URL=http://data-service:8003
-      - ML_SERVICE_URL=http://ml-service:8004
-    depends_on:
-      postgres:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      user-service:
-        condition: service_healthy
-      tenant-service:
-        condition: service_healthy
-      data-service:
-        condition: service_healthy
-      ml-service:
-        condition: service_healthy
-    volumes:
-      - ./src:/app/src:ro  # Read-only for security
-    networks:
-      - enterprise-network
-    restart: unless-stopped
-
-  # User Service
-  user-service:
-    build:
-      context: .
-      dockerfile: Dockerfile.user
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: astralytiq
     ports:
-      - "8001:8001"
-    environment:
-      - POSTGRES_HOST=postgres
-      - REDIS_HOST=redis
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
-      - JWT_ALGORITHM=HS256
-      - JWT_EXPIRATION_HOURS=24
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - "27017:27017"
     volumes:
-      - ./src:/app/src:ro  # Read-only for security
+      - mongo_data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
     networks:
-      - enterprise-network
+      - astralytiq-network
     restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Tenant Service
-  tenant-service:
-    build:
-      context: .
-      dockerfile: Dockerfile.tenant
-    ports:
-      - "8002:8002"
-    environment:
-      - POSTGRES_HOST=postgres
-      - REDIS_HOST=redis
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./src:/app/src:ro  # Read-only for security
-    networks:
-      - enterprise-network
-    restart: unless-stopped
-
-  # Data Service
-  data-service:
-    build:
-      context: .
-      dockerfile: Dockerfile.data
-    ports:
-      - "8003:8003"
-    environment:
-      - POSTGRES_HOST=postgres
-      - MONGODB_HOST=mongodb
-      - REDIS_HOST=redis
-      - MAX_FILE_SIZE_MB=100
-      - UPLOAD_PATH=/app/storage/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./src:/app/src:ro  # Read-only for security
-      - data_storage:/app/storage  # Persistent storage for uploaded files
-    networks:
-      - enterprise-network
-    restart: unless-stopped
-
-  # ML Service
-  ml-service:
-    build:
-      context: .
-      dockerfile: Dockerfile.ml
-    ports:
-      - "8004:8004"
-    environment:
-      - POSTGRES_HOST=postgres
-      - MONGODB_HOST=mongodb
-      - REDIS_HOST=redis
-      - MODEL_STORAGE_PATH=/app/storage/models
-    depends_on:
-      postgres:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./src:/app/src:ro  # Read-only for security
-      - ml_storage:/app/storage  # Persistent storage for ML models
-    networks:
-      - enterprise-network
-    restart: unless-stopped
-
-  # Nginx Load Balancer (Optional - for production)
+  # Nginx Reverse Proxy (Optional)
   nginx:
     image: nginx:alpine
+    container_name: astralytiq-nginx
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro  # SSL certificates
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
     depends_on:
-      - api-gateway
+      - streamlit
     networks:
-      - enterprise-network
+      - astralytiq-network
     restart: unless-stopped
     profiles:
-      - production  # Only start with --profile production
+      - production
 
-  # Monitoring with Prometheus (Optional)
+  # Prometheus Monitoring (Optional)
   prometheus:
     image: prom/prometheus:latest
+    container_name: astralytiq-prometheus
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
     networks:
-      - enterprise-network
+      - astralytiq-network
     restart: unless-stopped
     profiles:
-      - monitoring  # Only start with --profile monitoring
+      - monitoring
 
-  # Grafana for visualization (Optional)
+  # Grafana Dashboard (Optional)
   grafana:
     image: grafana/grafana:latest
+    container_name: astralytiq-grafana
     ports:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
     depends_on:
       - prometheus
     networks:
-      - enterprise-network
+      - astralytiq-network
     restart: unless-stopped
     profiles:
-      - monitoring  # Only start with --profile monitoring
+      - monitoring
 
 volumes:
   postgres_data:
     driver: local
-  mongodb_data:
-    driver: local
   redis_data:
     driver: local
-  data_storage:
-    driver: local
-  ml_storage:
+  mongo_data:
     driver: local
   prometheus_data:
     driver: local
@@ -260,7 +170,7 @@ volumes:
     driver: local
 
 networks:
-  enterprise-network:
+  astralytiq-network:
     driver: bridge
     ipam:
       config:

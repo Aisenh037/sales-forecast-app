@@ -8,6 +8,7 @@ Perfect for SDE/DE Campus Placements - Demonstrates:
 - Enterprise Security & Authentication
 - Scalable System Design
 - Modern DevOps Practices
+- Full-Stack Backend Integration
 """
 
 import streamlit as st
@@ -20,6 +21,18 @@ import time
 from datetime import datetime, timedelta
 import uuid
 from typing import Dict, List, Optional, Any
+
+# Import backend integration
+try:
+    from backend_integration import (
+        get_backend_client, check_backend_connection, authenticate_user,
+        is_authenticated as backend_authenticated, get_current_user as get_backend_user,
+        logout_user as backend_logout, get_cached_datasets, get_cached_models,
+        get_cached_metrics, setup_auto_refresh
+    )
+    BACKEND_AVAILABLE = True
+except ImportError:
+    BACKEND_AVAILABLE = False
 
 # Configuration
 st.set_page_config(
@@ -631,6 +644,10 @@ if 'demo_data' not in st.session_state:
     st.session_state.demo_data = generate_enterprise_demo_data()
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
+if 'backend_mode' not in st.session_state:
+    st.session_state.backend_mode = BACKEND_AVAILABLE and check_backend_connection() if BACKEND_AVAILABLE else False
+if 'backend_mode' not in st.session_state:
+    st.session_state.backend_mode = BACKEND_AVAILABLE and check_backend_connection() if BACKEND_AVAILABLE else False
 
 # Enterprise user database
 ENTERPRISE_USERS = {
@@ -658,7 +675,7 @@ ENTERPRISE_USERS = {
 }
 
 def show_enterprise_login():
-    """Enterprise-grade login interface."""
+    """Enterprise-grade login interface with backend integration."""
     st.markdown("""
     <div class="enterprise-header">
         <h1>⚡ AstralytiQ</h1>
@@ -671,8 +688,11 @@ def show_enterprise_login():
     with col2:
         st.markdown('<div class="auth-card">', unsafe_allow_html=True)
         
-        # Production status indicator
-        if PRODUCTION_MODE:
+        # Backend status indicator
+        if BACKEND_AVAILABLE and check_backend_connection():
+            st.markdown('<span class="status-badge status-success">Backend Connected</span>', unsafe_allow_html=True)
+            st.session_state.backend_mode = True
+        elif PRODUCTION_MODE:
             st.markdown('<span class="status-badge status-success">Production Ready</span>', unsafe_allow_html=True)
         else:
             st.markdown('<span class="status-badge status-info">Demo Mode</span>', unsafe_allow_html=True)
@@ -694,7 +714,20 @@ def show_enterprise_login():
                 demo_clicked = st.form_submit_button("Demo Access", use_container_width=True)
             
             if login_clicked and email and password:
-                if email in ENTERPRISE_USERS and ENTERPRISE_USERS[email]["password"] == password:
+                # Try backend authentication first
+                if BACKEND_AVAILABLE and st.session_state.backend_mode:
+                    with st.spinner("Authenticating with backend..."):
+                        if authenticate_user(email, password):
+                            user = get_backend_user()
+                            st.session_state.authenticated = True
+                            st.session_state.current_user = user
+                            st.session_state.user_level = "Advanced"
+                            st.success(f"Welcome back, {user['name']}!")
+                            st.rerun()
+                        else:
+                            st.error("Invalid credentials or backend unavailable")
+                # Fallback to local authentication
+                elif email in ENTERPRISE_USERS and ENTERPRISE_USERS[email]["password"] == password:
                     user = ENTERPRISE_USERS[email].copy()
                     user['email'] = email
                     st.session_state.authenticated = True
@@ -726,6 +759,10 @@ def show_enterprise_login():
             "📈 Business Intelligence Dashboards"
         ]
         
+        if BACKEND_AVAILABLE:
+            features.append("🔗 FastAPI Backend Integration")
+            features.append("🗄️ Database Connectivity")
+        
         for feature in features:
             st.markdown(f"- {feature}")
         
@@ -741,13 +778,25 @@ Password: ds123
         st.markdown('</div>', unsafe_allow_html=True)
 
 def show_enterprise_dashboard():
-    """Enterprise-grade dashboard with advanced metrics."""
+    """Enterprise-grade dashboard with advanced metrics and backend integration."""
     st.markdown("""
     <div class="enterprise-header">
         <h1>📊 Executive Dashboard</h1>
         <p>Real-time Enterprise MLOps Metrics</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Backend status indicator
+    if BACKEND_AVAILABLE and st.session_state.backend_mode:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 1rem; border-radius: 10px; margin: 1rem 0; text-align: center;">
+            <h3>🟢 Backend Connected</h3>
+            <p>Real-time data from FastAPI backend • JWT Authentication Active • Database Operational</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Setup auto-refresh for backend data
+        setup_auto_refresh()
     
     # Show loading state briefly for demonstration
     if 'dashboard_loaded' not in st.session_state:
@@ -756,8 +805,30 @@ def show_enterprise_dashboard():
         st.session_state.dashboard_loaded = True
         st.rerun()
     
-    demo_data = st.session_state.demo_data
-    metrics = demo_data['metrics']
+    # Get data from backend or demo data
+    if BACKEND_AVAILABLE and st.session_state.backend_mode:
+        # Use backend data
+        backend_metrics = get_cached_metrics()
+        datasets = get_cached_datasets()
+        models = get_cached_models()
+        
+        if backend_metrics:
+            metrics = backend_metrics
+        else:
+            metrics = st.session_state.demo_data['metrics']
+            
+        if datasets:
+            demo_data = {
+                'datasets': datasets,
+                'models': models if models else st.session_state.demo_data['models'],
+                'dashboards': st.session_state.demo_data['dashboards'],
+                'metrics': metrics
+            }
+        else:
+            demo_data = st.session_state.demo_data
+    else:
+        demo_data = st.session_state.demo_data
+        metrics = demo_data['metrics']
     
     # Enhanced Key Performance Indicators with new components
     col1, col2, col3, col4 = st.columns(4)
@@ -765,7 +836,7 @@ def show_enterprise_dashboard():
     with col1:
         st.markdown(render_enhanced_metric_card(
             title="Data Processed",
-            value=f"{metrics['data_processed_tb']} TB",
+            value=f"{metrics.get('data_processed_tb', 45.7)} TB",
             subtitle="This month",
             trend=15,
             icon="💾"
@@ -774,7 +845,7 @@ def show_enterprise_dashboard():
     with col2:
         st.markdown(render_enhanced_metric_card(
             title="Active Models",
-            value=str(metrics['active_models']),
+            value=str(metrics.get('active_models', 8)),
             subtitle="Production ready",
             trend=8,
             icon="🤖"
@@ -783,16 +854,19 @@ def show_enterprise_dashboard():
     with col3:
         st.markdown(render_enhanced_metric_card(
             title="API Calls",
-            value=f"{metrics['api_calls_today']:,}",
+            value=f"{metrics.get('api_calls_today', 125847):,}",
             subtitle="Today",
             trend=12,
             icon="🔗"
         ), unsafe_allow_html=True)
     
     with col4:
+        cost_savings = metrics.get('cost_savings', '$125,000')
+        if isinstance(cost_savings, str) and not cost_savings.startswith('$'):
+            cost_savings = f"${cost_savings}"
         st.markdown(render_enhanced_metric_card(
             title="Cost Savings",
-            value=metrics['cost_savings'],
+            value=cost_savings,
             subtitle="This quarter",
             trend=23,
             icon="💰"
@@ -804,40 +878,124 @@ def show_enterprise_dashboard():
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
+        uptime = metrics.get('uptime_percentage', 99.97)
         st.markdown(f"""
         <div class="enhanced-card">
             <h3 style="color: #2d3748; margin-bottom: 1rem;">System Health</h3>
             {render_status_indicator('online', 'All Systems')}
-            {render_progress_bar(99.7, 'Uptime')}
+            {render_progress_bar(uptime, 'Uptime')}
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
+        model_accuracy = metrics.get('model_accuracy_avg', 0.924) * 100
         st.markdown(f"""
         <div class="enhanced-card">
             <h3 style="color: #2d3748; margin-bottom: 1rem;">Model Performance</h3>
             {render_status_indicator('deployed', 'Models')}
-            {render_progress_bar(92.4, 'Avg Accuracy')}
+            {render_progress_bar(model_accuracy, 'Avg Accuracy')}
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
+        data_quality = metrics.get('data_quality_score', 0.967) * 100
         st.markdown(f"""
         <div class="enhanced-card">
             <h3 style="color: #2d3748; margin-bottom: 1rem;">Data Quality</h3>
             {render_status_indicator('active', 'Pipelines')}
-            {render_progress_bar(96.7, 'Quality Score')}
+            {render_progress_bar(data_quality, 'Quality Score')}
         </div>
         """, unsafe_allow_html=True)
     
     with col4:
+        active_users = metrics.get('active_users', 1247)
         st.markdown(f"""
         <div class="enhanced-card">
             <h3 style="color: #2d3748; margin-bottom: 1rem;">User Activity</h3>
-            {render_status_indicator('online', f'{metrics["active_users"]} Users')}
+            {render_status_indicator('online', f'{active_users} Users')}
             {render_progress_bar(85, 'Engagement')}
         </div>
         """, unsafe_allow_html=True)
+    
+    # Backend Data Integration Demo (if backend is available)
+    if BACKEND_AVAILABLE and st.session_state.backend_mode:
+        st.markdown("## 🗄️ Backend Data Integration")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("### 📊 Datasets from Backend")
+            if datasets:
+                df = pd.DataFrame(datasets)
+                # Handle different data formats from backend vs demo
+                display_cols = []
+                if 'name' in df.columns:
+                    display_cols.append('name')
+                if 'type' in df.columns:
+                    display_cols.append('type')
+                if 'status' in df.columns:
+                    display_cols.append('status')
+                if 'rows' in df.columns:
+                    display_cols.append('rows')
+                elif 'size' in df.columns:
+                    display_cols.append('size')
+                
+                if display_cols:
+                    st.dataframe(df[display_cols].head(5), use_container_width=True)
+                else:
+                    st.dataframe(df.head(5), use_container_width=True)
+                st.info(f"✅ Loaded {len(datasets)} datasets from backend API")
+            else:
+                st.warning("⚠️ No datasets available from backend")
+        
+        with col2:
+            st.markdown("### 🤖 ML Models from Backend")
+            if models:
+                df = pd.DataFrame(models)
+                display_cols = []
+                if 'name' in df.columns:
+                    display_cols.append('name')
+                if 'type' in df.columns:
+                    display_cols.append('type')
+                if 'status' in df.columns:
+                    display_cols.append('status')
+                if 'accuracy' in df.columns:
+                    display_cols.append('accuracy')
+                
+                if display_cols:
+                    st.dataframe(df[display_cols].head(5), use_container_width=True)
+                else:
+                    st.dataframe(df.head(5), use_container_width=True)
+                st.info(f"✅ Loaded {len(models)} models from backend API")
+            else:
+                st.warning("⚠️ No models available from backend")
+        
+        # API Integration Demo
+        st.markdown("## 🔗 API Integration Demo")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("🔄 Refresh Data", use_container_width=True):
+                # Clear cache and refresh
+                get_cached_datasets.clear()
+                get_cached_models.clear()
+                get_cached_metrics.clear()
+                st.success("✅ Data refreshed from backend!")
+                st.rerun()
+        
+        with col2:
+            if st.button("📊 Test API", use_container_width=True):
+                with st.spinner("Testing API endpoints..."):
+                    time.sleep(1)
+                    if check_backend_connection():
+                        st.success("✅ All API endpoints responding")
+                    else:
+                        st.error("❌ Backend connection failed")
+        
+        with col3:
+            if st.button("🔍 View Logs", use_container_width=True):
+                st.info("📋 Check backend logs at http://localhost:8081/health/detailed")
     
     # Advanced visualizations with enhanced styling
     st.markdown("## 📈 Performance Analytics")
@@ -846,20 +1004,43 @@ def show_enterprise_dashboard():
     
     with col1:
         # Model performance trends
-        models = demo_data['models']
-        model_df = pd.DataFrame(models)
+        models_data = demo_data['models']
+        model_df = pd.DataFrame(models_data)
+        
+        # Handle different data structures
+        if 'accuracy' in model_df.columns and 'requests_per_day' in model_df.columns:
+            x_col, y_col = 'accuracy', 'requests_per_day'
+            size_col = 'cost_per_month' if 'cost_per_month' in model_df.columns else None
+        elif 'accuracy' in model_df.columns and 'avg_latency_ms' in model_df.columns:
+            x_col, y_col = 'accuracy', 'avg_latency_ms'
+            size_col = 'requests_per_day' if 'requests_per_day' in model_df.columns else None
+        else:
+            # Fallback to available columns
+            numeric_cols = model_df.select_dtypes(include=[np.number]).columns.tolist()
+            if len(numeric_cols) >= 2:
+                x_col, y_col = numeric_cols[0], numeric_cols[1]
+                size_col = numeric_cols[2] if len(numeric_cols) > 2 else None
+            else:
+                x_col, y_col, size_col = 'accuracy', 'requests_per_day', 'cost_per_month'
+                # Add default values if columns don't exist
+                if x_col not in model_df.columns:
+                    model_df[x_col] = np.random.uniform(0.8, 0.95, len(model_df))
+                if y_col not in model_df.columns:
+                    model_df[y_col] = np.random.randint(1000, 50000, len(model_df))
+                if size_col and size_col not in model_df.columns:
+                    model_df[size_col] = np.random.randint(100, 5000, len(model_df))
         
         fig = px.scatter(
             model_df, 
-            x='accuracy', 
-            y='requests_per_day',
-            size='cost_per_month',
-            color='type',
+            x=x_col, 
+            y=y_col,
+            size=size_col if size_col else None,
+            color='type' if 'type' in model_df.columns else None,
             title="Model Performance vs Usage",
             labels={
-                'accuracy': 'Model Accuracy',
-                'requests_per_day': 'Daily Requests',
-                'cost_per_month': 'Monthly Cost ($)'
+                x_col: x_col.replace('_', ' ').title(),
+                y_col: y_col.replace('_', ' ').title(),
+                size_col: size_col.replace('_', ' ').title() if size_col else ''
             },
             color_discrete_sequence=['#667eea', '#764ba2', '#f093fb', '#48cae4', '#f72585', '#4cc9f0']
         )
@@ -875,10 +1056,18 @@ def show_enterprise_dashboard():
     
     with col2:
         # Data processing pipeline with enhanced colors
-        datasets = demo_data['datasets']
-        dataset_df = pd.DataFrame(datasets)
+        datasets_data = demo_data['datasets']
+        dataset_df = pd.DataFrame(datasets_data)
         
-        processing_data = dataset_df.groupby('status').size().reset_index(name='count')
+        # Create processing volume chart
+        if 'status' in dataset_df.columns:
+            processing_data = dataset_df.groupby('status').size().reset_index(name='count')
+        else:
+            # Fallback data
+            processing_data = pd.DataFrame({
+                'status': ['Active', 'Processing', 'Archived'],
+                'count': [12, 2, 1]
+            })
         
         fig = px.pie(
             processing_data,
@@ -987,7 +1176,14 @@ def show_enterprise_dashboard():
     
     # Auto-refresh functionality
     if st.button("🔄 Refresh Dashboard", use_container_width=True):
-        st.session_state.demo_data = generate_enterprise_demo_data()
+        if BACKEND_AVAILABLE and st.session_state.backend_mode:
+            # Clear backend cache
+            get_cached_datasets.clear()
+            get_cached_models.clear()
+            get_cached_metrics.clear()
+        else:
+            # Refresh demo data
+            st.session_state.demo_data = generate_enterprise_demo_data()
         st.session_state.dashboard_loaded = False
         st.rerun()
 
@@ -1039,6 +1235,10 @@ def show_user_profile():
         st.sidebar.markdown("---")
         
         if st.sidebar.button("🚪 Logout", use_container_width=True):
+            # Handle backend logout if authenticated via backend
+            if BACKEND_AVAILABLE and st.session_state.backend_mode and backend_authenticated():
+                backend_logout()
+            
             st.session_state.authenticated = False
             st.session_state.current_user = None
             st.success("Logged out successfully!")
@@ -1072,6 +1272,22 @@ def show_navigation():
         st.sidebar.markdown("✅ Storage: Connected") 
         st.sidebar.markdown("✅ OAuth: Configured")
         st.sidebar.markdown("✅ Monitoring: Active")
+    
+    # Backend status
+    if BACKEND_AVAILABLE:
+        st.sidebar.markdown("### 🔗 Backend Status")
+        if st.session_state.backend_mode and check_backend_connection():
+            st.sidebar.markdown("🟢 **FastAPI Backend Online**")
+            st.sidebar.markdown("✅ JWT Authentication Active")
+            st.sidebar.markdown("✅ Database Connected")
+            st.sidebar.markdown("✅ API Endpoints Responding")
+        else:
+            st.sidebar.markdown("🔴 **Backend Offline**")
+            st.sidebar.markdown("⚠️ Using Demo Mode")
+            
+            if st.sidebar.button("🔄 Retry Backend Connection"):
+                st.session_state.backend_mode = check_backend_connection()
+                st.rerun()
     
     return selected
 
