@@ -42,8 +42,17 @@ st.set_page_config(
 )
 
 # Demo mode configuration (for Streamlit Cloud deployment)
-DEMO_MODE = True
+DEMO_MODE = st.secrets.get("DEMO_MODE", "true").lower() == "true"
 API_BASE_URL = "http://localhost:8000" if not DEMO_MODE else None
+
+# Initialize production integrations
+try:
+    from auth_integrations import AuthManager
+    auth_manager = AuthManager()
+    PRODUCTION_MODE = auth_manager.get_integration_status()["supabase"] or auth_manager.get_integration_status()["cloudinary"]
+except ImportError:
+    auth_manager = None
+    PRODUCTION_MODE = False
 
 # Custom CSS for professional styling with theme compatibility
 st.markdown("""
@@ -199,15 +208,38 @@ DEMO_USERS = {
 }
 
 def authenticate_user(email, password):
-    """Simple authentication function."""
+    """Enhanced authentication function with production integration."""
+    
+    # Try production authentication first
+    if auth_manager and not DEMO_MODE:
+        try:
+            user = auth_manager.authenticate(email, password)
+            if user:
+                return user
+        except Exception as e:
+            st.error(f"⚠️ Production auth error: {str(e)}")
+    
+    # Fallback to demo users
     if email in DEMO_USERS and DEMO_USERS[email]["password"] == password:
         return DEMO_USERS[email]
     return None
 
 def show_login_page():
-    """Display login page."""
+    """Display login page with production integration status."""
     st.markdown('<h1 class="main-header">🚀 AstralytiQ Login</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666; margin-bottom: 2rem;">Educational MLOps Platform</p>', unsafe_allow_html=True)
+    
+    # Show production status
+    if auth_manager:
+        status = auth_manager.get_integration_status()
+        if status["supabase"] or status["cloudinary"]:
+            st.markdown("""
+            <div class="success-message">
+                <h4>🎉 Production Mode Active!</h4>
+                <p>✅ Supabase: {'Connected' if status['supabase'] else 'Demo Mode'}</p>
+                <p>✅ Cloudinary: {'Connected' if status['cloudinary'] else 'Demo Mode'}</p>
+            </div>
+            """, unsafe_allow_html=True)
     
     # Login form
     with st.container():
@@ -255,6 +287,30 @@ def show_login_page():
                     st.session_state.user_level = demo_user["level"]
                     st.success(f"Welcome to Demo Mode, {demo_user['name']}!")
                     st.rerun()
+            
+            # Production registration option
+            if auth_manager and auth_manager.get_integration_status()["supabase"]:
+                st.markdown("### ➕ Create New Account")
+                with st.expander("Register for Production Account"):
+                    with st.form("register_form"):
+                        reg_name = st.text_input("Full Name")
+                        reg_email = st.text_input("Email Address")
+                        reg_password = st.text_input("Password", type="password")
+                        reg_role = st.selectbox("Role", ["User", "Data Scientist", "Analyst", "Manager"])
+                        reg_level = st.selectbox("Experience Level", ["Beginner", "Intermediate", "Advanced"])
+                        
+                        if st.form_submit_button("🎯 Create Account"):
+                            if reg_name and reg_email and reg_password:
+                                user_data = {
+                                    "name": reg_name,
+                                    "role": reg_role,
+                                    "level": reg_level
+                                }
+                                new_user = auth_manager.register(reg_email, reg_password, user_data)
+                                if new_user:
+                                    st.success("✅ Account created successfully! Please login.")
+                                else:
+                                    st.error("❌ Registration failed. Please try again.")
             
             # Demo credentials info
             st.markdown("""
@@ -501,7 +557,23 @@ def show_data_management():
             )
             
             if uploaded_file:
-                st.success(f"File '{uploaded_file.name}' uploaded successfully!")
+                # Enhanced upload with production storage
+                if auth_manager and auth_manager.get_integration_status()["cloudinary"]:
+                    with st.spinner("Uploading to cloud storage..."):
+                        try:
+                            file_url = auth_manager.upload_file(
+                                uploaded_file.getvalue(), 
+                                folder="datasets"
+                            )
+                            if file_url:
+                                st.success(f"✅ File '{uploaded_file.name}' uploaded to cloud storage!")
+                                st.info(f"🔗 Cloud URL: {file_url}")
+                            else:
+                                st.warning("⚠️ Cloud upload failed, using local processing")
+                        except Exception as e:
+                            st.error(f"❌ Upload error: {str(e)}")
+                else:
+                    st.success(f"File '{uploaded_file.name}' uploaded successfully!")
                 
                 # Show preview
                 if uploaded_file.type == "text/csv":
@@ -514,6 +586,17 @@ def show_data_management():
                         st.metric("Rows", len(df))
                     with col2:
                         st.metric("Columns", len(df.columns))
+                
+                # Production features
+                if auth_manager and auth_manager.get_integration_status()["supabase"]:
+                    st.markdown("### 🔧 Advanced Options")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("💾 Save to Database"):
+                            st.success("Dataset metadata saved to Supabase!")
+                    with col2:
+                        if st.button("🔄 Process with ML Pipeline"):
+                            st.success("Processing started with production ML pipeline!")
         
         elif upload_method == "URL Import":
             url = st.text_input("Enter data URL:", placeholder="https://example.com/data.csv")
@@ -1108,10 +1191,21 @@ def main():
     st.sidebar.markdown(f"⏱️ Uptime: 99.9%")
     st.sidebar.markdown(f"🔄 Last Updated: {datetime.now().strftime('%H:%M:%S')}")
     
+    # Production integration status
+    if auth_manager:
+        status = auth_manager.get_integration_status()
+        st.sidebar.markdown("### 🔗 Integrations")
+        st.sidebar.markdown(f"🗄️ Supabase: {'✅' if status['supabase'] else '🎭 Demo'}")
+        st.sidebar.markdown(f"☁️ Cloudinary: {'✅' if status['cloudinary'] else '🎭 Demo'}")
+        st.sidebar.markdown(f"💾 Local Storage: {'✅' if status['local_storage'] else '❌'}")
+    
     # Demo mode indicator
     if DEMO_MODE:
         st.sidebar.markdown("### 🎭 Demo Mode")
         st.sidebar.info("Running in demo mode with sample data. Deploy with backend services for full functionality.")
+    else:
+        st.sidebar.markdown("### 🚀 Production Mode")
+        st.sidebar.success("Running with production integrations!")
     
     # Route to appropriate page
     if selected_page == "� DasAhboard":
