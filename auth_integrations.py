@@ -258,22 +258,40 @@ class OAuthProviders:
         pass
     
     def show_oauth_buttons(self):
-        """Display OAuth login buttons."""
-        st.markdown("### 🔗 Social Login")
+        """Display OAuth login buttons with GitHub and Google integration."""
+        st.markdown("### Social Authentication")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("Google", use_container_width=True):
-                st.info("Google OAuth integration ready!")
+            # Check if Google OAuth is configured
+            google_config = self._setup_google_oauth()
+            if google_config:
+                if st.button("Google", use_container_width=True):
+                    # Google OAuth flow
+                    google_auth_url = f"{google_config['authorize_url']}?client_id={google_config['client_id']}&response_type=code&scope={google_config['scope']}&redirect_uri={st.secrets.get('STREAMLIT_APP_URL', 'https://astralytiq-platform.streamlit.app')}"
+                    st.markdown(f"[Login with Google]({google_auth_url})")
+                    st.success("Google OAuth is configured! Click the link above to authenticate.")
+            else:
+                if st.button("Google", use_container_width=True):
+                    st.warning("⚠️ Google OAuth not configured. Please add your Google Client ID and Secret to secrets.")
         
         with col2:
-            if st.button("GitHub", use_container_width=True):
-                st.info("GitHub OAuth integration ready!")
+            # Check if GitHub OAuth is configured
+            github_config = self._setup_github_oauth()
+            if github_config:
+                if st.button("GitHub", use_container_width=True):
+                    # GitHub OAuth flow
+                    github_auth_url = f"{github_config['authorize_url']}?client_id={github_config['client_id']}&scope={github_config['scope']}&redirect_uri={st.secrets.get('STREAMLIT_APP_URL', 'https://astralytiq-platform.streamlit.app')}"
+                    st.markdown(f"[Login with GitHub]({github_auth_url})")
+                    st.success("GitHub OAuth is configured! Click the link above to authenticate.")
+            else:
+                if st.button("GitHub", use_container_width=True):
+                    st.warning("⚠️ GitHub OAuth not configured. Please add your GitHub Client ID and Secret to secrets.")
         
         with col3:
             if st.button("Microsoft", use_container_width=True):
-                st.info("Microsoft OAuth integration ready!")
+                st.info("Microsoft OAuth integration ready for setup!")
 
 # =============================================================================
 # 5. UNIFIED AUTHENTICATION MANAGER

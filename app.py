@@ -226,7 +226,7 @@ def authenticate_user(email, password):
 
 def show_login_page():
     """Display login page with production integration status."""
-    st.markdown('<h1 class="main-header">🚀 AstralytiQ Login</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">AstralytiQ</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666; margin-bottom: 2rem;">Educational MLOps Platform</p>', unsafe_allow_html=True)
     
     # Show production status
@@ -287,6 +287,12 @@ def show_login_page():
                     st.session_state.user_level = demo_user["level"]
                     st.success(f"Welcome to Demo Mode, {demo_user['name']}!")
                     st.rerun()
+            
+            # OAuth integration
+            if auth_manager:
+                st.markdown("---")
+                st.markdown("### Social Authentication")
+                auth_manager.oauth.show_oauth_buttons()
             
             # Production registration option
             if auth_manager and auth_manager.get_integration_status()["supabase"]:
