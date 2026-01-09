@@ -12,7 +12,7 @@ alembic==1.13.1
 
 # MongoDB
 motor==3.3.2
-pymongo==4.6.0
+pymongo==4.6.3
 
 # Redis
 redis[hiredis]==5.0.1
