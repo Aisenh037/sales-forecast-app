@@ -1,0 +1,23 @@
+name: code-quality
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+      
+      - name: Install Linting Tools
+        run: pip install flake8 isort
+        
+      - name: Check Imports
+        run: isort . --check-only
+        
+      - name: Lint with Flake8
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics

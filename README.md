@@ -1,82 +1,124 @@
-# ⚡ AstralytiQ - Enterprise MLOps Platform
+# ⚡ AstralytiQ - Enterprise MLOps & Sales Intelligence Platform
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://astralytiq.streamlit.app)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI Backend](https://img.shields.io/badge/Backend-FastAPI-009688.svg?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
-> **🎯 Industry-grade MLOps platform showcasing enterprise development practices**  
-> **Perfect for SDE/DE Campus Placements** - Demonstrates Clean Architecture, Production-Ready Code Quality, Enterprise Security & Authentication, Scalable System Design, and Modern DevOps Practices.
-
-## 🚀 Live Demo
-
-**🌐 [Try AstralytiQ Live](https://sales-forecast-app-aisenh037.streamlit.app)**
-
-### 🔐 Demo Credentials
-```
-🔑 Admin Access: admin@astralytiq.com / admin123
-👨‍💻 Data Scientist: data.scientist@astralytiq.com / ds123
-📊 Business Analyst: analyst@astralytiq.com / analyst123
-```
+> **AstralytiQ** is a high-performance, production-grade MLOps platform designed for enterprise sales forecasting and resource intelligence. It bridges the gap between complex ML models and actionable business insights through a sleek, unified SaaS interface.
 
 ---
 
-## 🏗️ Architecture
+## 🌟 Key Features
 
-AstralytiQ follows a decoupled, microservices-ready architecture:
+### 🏢 Enterprise Core
+- **Role-Based Access Control (RBAC)**: Fine-grained permissions for Admins, Data Scientists, and Business Analysts.
+- **Secure Authentication**: JWT-based session management with Supabase/PostgreSQL integration.
+- **Microservices Ready**: Decoupled frontend (Streamlit) and backend (FastAPI) architecture.
 
-- **Frontend**: Streamlit-based Enterprise UI with custom CSS and real-time Plotly charts.
-- **Backend**: FastAPI Forecasting Engine (Deployed via Cloud Run).
-- **Security**: JWT-based Authentication & Authorization.
-- **Data**: Support for CSV, PostgreSQL, and scalable MLOps pipelines.
+### 🤖 ML & Data Intelligence
+- **Lifecycle Management**: Track models from training to deployment with automated performance metrics (Accuracy, F1, Recall).
+- **Data Governance**: Monitor dataset health, quality scores, and processing pipelines (CSV, Parquet, Delta Lake).
+- **Real-time Analytics**: High-fidelity Plotly visualizations for sales trends and predictive forecasting.
+
+### 🔍 Operational Excellence
+- **Live System Monitoring**: Real-time tracking of CPU/Memory usage and API response latencies.
+- **Hybrid Infrastructure**: Deployable across GCP (Cloud Run), AWS (ECS), and Azure (Pipelines).
+- **Dockerized Workflow**: Consistent development and production environments using multi-stage Docker builds.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | Streamlit, Plotly, Custom CSS3 (Glassmorphism) |
+| **API Backend** | FastAPI, Pydantic |
+| **Database** | PostgreSQL, Supabase |
+| **ML/Data** | Scikit-learn, Pandas, NumPy, Prophet |
+| **DevOps** | Docker, Docker Compose, GitHub Actions |
+| **Cloud** | GCP (Cloud Run, Cloud Build), AWS, Azure |
 
 ---
 
 ## 🚀 Quick Start
 
-### Local Development
+### 🏁 Production-Grade Local Setup
 ```bash
-# Clone and setup
-git clone https://github.com/yourusername/astralytiq.git
+# 1. Clone & Navigate
+git clone https://github.com/Aisenh037/astralytiq.git
 cd astralytiq
+
+# 2. Environment Configuration
+cp .env.example .env  # Update your keys
+
+# 3. Launch with Docker (Recommended)
+docker-compose --profile full-stack up -d
+```
+*Access the platform at `http://localhost:8501`*
+
+### 🐍 Manual Python Setup
+```bash
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Install and Run
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-### Docker Deployment
-```bash
-docker-compose up -d
+---
+
+## 🔐 Enterprise Access (Demo)
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| **Admin** | `admin@astralytiq.com` | `admin123` |
+| **Scientist** | `data.scientist@astralytiq.com` | `ds123` |
+| **Analyst** | `analyst@astralytiq.com` | `analyst123` |
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TD
+    User((User)) -->|HTTPS| StreamlitUI[Streamlit UI - Glassmorphism]
+    StreamlitUI -->|JWT Auth| FastAPI[FastAPI Backend]
+    FastAPI -->|Query| DB[(PostgreSQL/Supabase)]
+    FastAPI -->|Compute| MLModel[Forecasting Engine]
+    StreamlitUI -->|CDN| Assets[Cloudinary Assets]
+    
+    subgraph Cloud Infrastructure
+    FastAPI
+    DB
+    MLModel
+    end
 ```
 
 ---
 
-## 📚 Documentation
-
-Detailed guides are located in the [docs/](docs/) directory:
-
-- [🚀 GCP Quick Start](docs/quickstart_gcp.md)
-- [🏗️ Full GCP Deployment Guide](docs/deployment_gcp_full.md)
-- [☁️ Cloud Run Backend Guide](docs/deployment_backend.md)
-- [🎈 Streamlit Cloud Deployment](docs/deployment_streamlit.md)
-- [🛠️ Development Guide](docs/development.md)
-- [🤝 Contributing](docs/contributing.md)
+## 📈 Roadmap & MVP Progress
+- [x] **Phase 1**: Core MLOps Dashboard & RBAC
+- [x] **Phase 2**: FastAPI Integration & Live Monitoring
+- [x] **Phase 3**: Multi-Cloud Deployment Scripts
+- [ ] **Phase 4**: Automated Model Retraining Pipelines (Coming Soon)
+- [ ] **Phase 5**: Advanced Anomaly Detection (Coming Soon)
 
 ---
 
-## 🧪 Testing
+## 🤝 Contributing
+We welcome contributions! Please see our [Contributing Guide](docs/contributing.md) for details on code style and pull request processes.
 
-```bash
-pytest tests/
-```
+## 📖 Project Wiki
+Detailed technical documentation and onboarding guides can be found in our **[Project Wiki](wiki/Home.md)**:
+- [Onboarding for Data Scientists](wiki/Data-Scientist-Onboarding.md)
+- [Database Schema Design](wiki/Database-Design.md)
+- [Architecture Deep Dive](ARCHITECTURE.md)
+- [Docker Deployment Strategy](wiki/Docker-Strategy.md)
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 <div align="center">
-**⚡ Built with passion for enterprise-grade MLOps**
+  <sub>Built with ❤️ by the AstralytiQ Engineering Team</sub>
 </div>
